@@ -1,0 +1,80 @@
+Baik Ad, untuk pastikan setiap repo dan projek Firebase (`stress-presentation`, `stress-places`, `stress-daily`) betul‑betul berasingan dan berjenama sendiri, ada beberapa bahagian yang perlu awak tukar nama. Saya pecahkan ikut fail dan komponen supaya senang ikut:
+
+---
+
+1. Repo / Firebase Project
+-Firebase console: 
+--projek mesti dinamakan ikut nama aplikasi dan repo github
+--contoh : stress-presentation, stress-places, stress-daily.
+
+-Firebase config 
+--dlm firebase-config.js, tukar elemen dibawah ikut projek masing‑masing : 
+---apiKey
+---authDomain
+---projectId
+---storageBucket
+---messagingSenderId
+---appId
+
+Contoh:
+  js
+  const firebaseConfig = {
+    apiKey: "...",
+    authDomain: "stress-presentation.firebaseapp.com",
+    projectId: "stress-presentation",
+    storageBucket: "stress-presentation.appspot.com",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+---
+
+2.manifest.json
+--Tukar "name" dan "short_name" ikut nama versi kamus:
+---contoh : 
+----name : "StressPresentation"
+----short_name : "Presentation"
+
+--Tukar "icons" fail ikut branding 
+---contoh : icon-192.png 
+---digalakkan nama lain setiap versi
+
+
+--
+
+3.index.html
+-tukar elemen di bawah ikut versi : 
+--<title> : StressPresentation
+--<h1> :  StressPresentation
+
+---
+
+4.service-worker.js
+-Tukar cache name supaya unik:
+--contoh : const CACHE_NAME = "stress-presentation-cache-v1";
+
+
+
+optional : 
+
+5.Firestore Data Prefix
+-Supaya data tak bercampur, boleh tambah prefix pada bahasaName` atau `userId` bila simpan:
+--contoh : Presentation → `"bahasaName": "Presentation-English"`
+
+---
+
+6.Deployment
+-Hosting URL akan ikut projek Firebase:
+--https://stress-presentation.web.app
+--https://stress-places.web.app
+--https://stress-daily.web.app
+
+---
+
+✅Ringkasnya
+Bahagian yang perlu ditukar untuk setiap repo:
+-firebase-config.js
+-Manifest.json : (`name`, `short_name`, `icons`)
+-index.html : (`<title>`, `<h1>`, label page)
+-service-worker.js :  (cache name)
+-Firestore data prefix : (optional, untuk elak bercampur)

@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Semua dokumen dalam mana-mana koleksi
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+sayaz06.github.io
