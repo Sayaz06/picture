@@ -79,6 +79,24 @@
       cursor: pointer; margin-bottom: 12px; transition: all 0.15s;
     }
     .mode-card:active { border-color: var(--amber); background: var(--card2); }
+    .prompt-box {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 12px; padding: 12px; margin-bottom: 12px; flex-shrink: 0;
+    }
+    .prompt-box.locked { border-color: var(--border); }
+    .prompt-box.unlocked { border-color: var(--amber); }
+    .prompt-label {
+      font-size: 0.7rem; font-weight: 700; color: var(--subtext);
+      text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .prompt-textarea {
+      width: 100%; background: transparent; border: none; outline: none;
+      color: var(--text); font-size: 0.82rem; line-height: 1.5;
+      resize: none; min-height: 60px; font-family: inherit;
+    }
+    .prompt-textarea:disabled { color: var(--subtext); cursor: not-allowed; }
+    .prompt-actions { display: flex; gap: 6px; margin-top: 8px; }    
     .mode-icon { font-size: 2rem; flex-shrink: 0; }
     .mode-name { font-size: 1.05rem; font-weight: 700; }
     .mode-desc { font-size: 0.72rem; color: var(--subtext); margin-top: 2px; }
@@ -234,6 +252,33 @@
     </div>
     <button class="btn-sm" id="btn-logout" style="color:var(--red);border-color:var(--red);">Keluar</button>
   </div>
+  <!-- PROMPT BOX -->
+  <div class="prompt-box locked" id="prompt-box">
+    <div class="prompt-label">
+      <span>🤖 AI Prompt (Copy semasa Download G1)</span>
+      <button class="btn-sm" id="btn-prompt-lock-toggle" style="border-color:var(--amber);color:var(--amber);">✏️ Edit</button>
+    </div>
+    <textarea class="prompt-textarea" id="prompt-textarea" disabled placeholder="Belum ada prompt. Tekan Edit untuk tambah..."></textarea>
+    <div class="prompt-actions" id="prompt-actions" style="display:none;">
+      <button class="btn-sm" id="btn-prompt-save" style="border-color:var(--green);color:var(--green);">💾 Simpan</button>
+      <button class="btn-sm" id="btn-prompt-cancel" style="color:var(--subtext);">Batal</button>
+    </div>
+  </div>
+
+  <!-- PIN OVERLAY untuk unlock edit prompt -->
+  <div id="prompt-pin-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;align-items:center;justify-content:center;">
+    <div style="background:var(--card);border:2px solid var(--amber);border-radius:14px;padding:20px;max-width:320px;width:90%;text-align:center;">
+      <div style="font-size:0.85rem;font-weight:700;color:var(--amber);margin-bottom:10px;">🔐 Masukkan PIN untuk Edit Prompt</div>
+      <input id="prompt-pin-input" type="password" inputmode="numeric" maxlength="6"
+        style="width:100%;padding:12px;font-size:1.4rem;text-align:center;letter-spacing:0.4em;border:2px solid var(--border-mid);border-radius:10px;background:var(--bg);color:var(--text);outline:none;font-family:monospace;margin-bottom:8px;">
+      <div id="prompt-pin-err" style="font-size:0.72rem;color:var(--red);min-height:1em;margin-bottom:8px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button id="btn-prompt-pin-batal" class="btn-sm" style="flex:1;padding:10px;">Batal</button>
+        <button id="btn-prompt-pin-ok" class="btn-sm" style="flex:1;padding:10px;border-color:var(--amber);color:var(--amber);">Masuk</button>
+      </div>
+    </div>
+  </div>
+
   <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0;">
     <div class="mode-card" id="btn-mode-bahasa">
       <div class="mode-icon">🔤</div>
@@ -450,6 +495,7 @@ onAuthStateChanged(auth, user => {
   if (user) {
     document.getElementById('mode-user').textContent = user.email;
     loadAllCollections();
+    loadPrompt();
     showScreen('screen-mode');
   } else {
     document.getElementById('pin-input').value = '';
@@ -839,6 +885,15 @@ function buildCoupleCard(title, g1Url, g2Url, isFakta, onUploadG2, onDeleteG2) {
         a.click();
         setTimeout(() => URL.revokeObjectURL(url), 3000);
       } catch(e) { toast('❌ Gagal download: ' + e.message); }
+      // Copy prompt serentak
+      if (promptText) {
+        try {
+          await navigator.clipboard.writeText(promptText);
+          toast('⬇ Download + 📋 Prompt disalin!', 3000);
+        } catch(e) { toast('⬇ Download berjaya (prompt gagal salin)', 3000); }
+      } else {
+        toast('⬇ Download berjaya', 2000);
+      }
     };
   } else {
     g1.innerHTML = `<div class="frame-empty"><span>📷</span><span>Tiada G1</span></div>`;
@@ -1083,7 +1138,104 @@ document.getElementById('btn-crop-confirm').onclick = () => {
   }, 'image/jpeg', 0.9);
 };
 
-// ── SERVICE WORKER ──
+// ── PROMPT MANAGER ──
+let promptText = '';
+let promptUnlocked = false;
+
+async function loadPrompt() {
+  if (!currentUser) return;
+  try {
+    const { getDoc: gd, doc: d } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
+    const snap = await gd(d(db, 'users', currentUser.uid, 'kindle_settings', 'ai_prompt'));
+    if (snap.exists()) {
+      promptText = snap.data().prompt || '';
+      document.getElementById('prompt-textarea').value = promptText;
+    }
+  } catch(e) {}
+}
+
+async function savePrompt() {
+  if (!currentUser) return;
+  const val = document.getElementById('prompt-textarea').value.trim();
+  try {
+    const { setDoc: sd, doc: d } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js");
+    await sd(d(db, 'users', currentUser.uid, 'kindle_settings', 'ai_prompt'), {
+      prompt: val, updatedAt: Date.now()
+    });
+    promptText = val;
+    lockPrompt();
+    toast('✅ Prompt disimpan.');
+  } catch(e) { toast('❌ Gagal simpan: ' + e.message); }
+}
+
+function lockPrompt() {
+  promptUnlocked = false;
+  const ta = document.getElementById('prompt-textarea');
+  const box = document.getElementById('prompt-box');
+  const actions = document.getElementById('prompt-actions');
+  const toggleBtn = document.getElementById('btn-prompt-lock-toggle');
+  ta.disabled = true;
+  box.className = 'prompt-box locked';
+  actions.style.display = 'none';
+  toggleBtn.textContent = '✏️ Edit';
+}
+
+function unlockPrompt() {
+  promptUnlocked = true;
+  const ta = document.getElementById('prompt-textarea');
+  const box = document.getElementById('prompt-box');
+  const actions = document.getElementById('prompt-actions');
+  const toggleBtn = document.getElementById('btn-prompt-lock-toggle');
+  ta.disabled = false;
+  box.className = 'prompt-box unlocked';
+  actions.style.display = 'flex';
+  toggleBtn.textContent = '🔒 Kunci';
+  ta.focus();
+}
+
+document.getElementById('btn-prompt-lock-toggle').onclick = () => {
+  if (promptUnlocked) {
+    lockPrompt();
+  } else {
+    // Tunjuk PIN overlay
+    const overlay = document.getElementById('prompt-pin-overlay');
+    overlay.style.display = 'flex';
+    document.getElementById('prompt-pin-input').value = '';
+    document.getElementById('prompt-pin-err').textContent = '';
+    setTimeout(() => document.getElementById('prompt-pin-input').focus(), 100);
+  }
+};
+
+document.getElementById('btn-prompt-pin-batal').onclick = () => {
+  document.getElementById('prompt-pin-overlay').style.display = 'none';
+};
+
+document.getElementById('btn-prompt-pin-ok').onclick = async () => {
+  const pin = document.getElementById('prompt-pin-input').value.trim();
+  const err = document.getElementById('prompt-pin-err');
+  if (!/^\d{4,6}$/.test(pin)) { err.textContent = 'PIN mesti 4-6 digit.'; return; }
+  try {
+    const { signInWithEmailAndPassword: siwep } = await import("https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js");
+    await siwep(auth, ADMIN_EMAIL, pin);
+    document.getElementById('prompt-pin-overlay').style.display = 'none';
+    unlockPrompt();
+  } catch(e) {
+    err.textContent = e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+      ? '❌ PIN salah.' : '❌ ' + e.message;
+  }
+};
+
+document.getElementById('prompt-pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-prompt-pin-ok').click();
+});
+
+document.getElementById('btn-prompt-save').onclick = savePrompt;
+document.getElementById('btn-prompt-cancel').onclick = () => {
+  document.getElementById('prompt-textarea').value = promptText;
+  lockPrompt();
+};
+
+// ── SERVICE WORKER ──  
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
