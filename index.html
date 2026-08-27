@@ -147,6 +147,12 @@
       color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 700;
       cursor: pointer;
     }
+    .frame-dl {
+      position: absolute; bottom: 3px; left: 4px;
+      font-size: 0.6rem; background: rgba(56,189,248,0.85);
+      color: #000; padding: 1px 6px; border-radius: 4px; font-weight: 700;
+      cursor: pointer;
+    }
     .progress-bar {
       height: 3px; background: var(--amber); border-radius: 999px;
       transition: width 0.3s ease; width: 0%;
@@ -812,12 +818,31 @@ function buildCoupleCard(title, g1Url, g2Url, isFakta, onUploadG2, onDeleteG2) {
   const frames = document.createElement('div');
   frames.className = 'couple-frames';
 
-  // G1 — read only
+  // G1 — read only + download button
   const g1 = document.createElement('div');
   g1.className = frameClass;
-  g1.innerHTML = g1Url
-    ? `<img src="${g1Url}" alt="G1" loading="lazy"><div class="frame-label">G1</div>`
-    : `<div class="frame-empty"><span>📷</span><span>Tiada G1</span></div>`;
+  if (g1Url) {
+    g1.innerHTML = `
+      <img src="${g1Url}" alt="G1" loading="lazy">
+      <div class="frame-label">G1</div>
+      <div class="frame-dl" id="dl-${Math.random().toString(36).slice(2)}">⬇</div>
+    `;
+    g1.querySelector('[id^="dl-"]').onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        const resp = await fetch(g1Url);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = (title || 'gambar') + '_G1.jpg';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 3000);
+      } catch(e) { toast('❌ Gagal download: ' + e.message); }
+    };
+  } else {
+    g1.innerHTML = `<div class="frame-empty"><span>📷</span><span>Tiada G1</span></div>`;
+  }  
 
   // G2 — boleh upload
   const g2 = document.createElement('div');
