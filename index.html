@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gambar Manager</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#f59e0b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="GambarMgr">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f172a; --card: #1e293b; --card2: #263348;
+      --text: #f1f5f9; --subtext: #94a3b8;
+      --border: #334155; --border-mid: #475569;
+      --green: #22c55e; --red: #ef4444;
+      --amber: #f59e0b; --blue: #38bdf8;
+    }
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    body { padding: 0; max-width: 480px; margin: 0 auto; }
+
+    /* ── SCREEN ── */
+    .screen { display: none; flex-direction: column; height: 100vh; padding: 12px; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    /* ── LOGIN ── */
+    .login-box {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100%; gap: 16px; padding: 24px;
+    }
+    .login-title { font-size: 1.4rem; font-weight: 800; color: var(--amber); }
+    .login-sub { font-size: 0.8rem; color: var(--subtext); text-align: center; }
+    .pin-input {
+      width: 100%; padding: 14px; font-size: 1.6rem; text-align: center;
+      letter-spacing: 0.4em; border: 2px solid var(--border-mid);
+      border-radius: 12px; background: var(--card); color: var(--text);
+      outline: none; font-family: monospace;
+    }
+    .pin-input:focus { border-color: var(--amber); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: block; width: 100%; padding: 12px 10px; margin: 4px 0;
+      font-size: 1rem; font-weight: 700; text-align: center;
+      border: 2px solid var(--border-mid); background: var(--card);
+      color: var(--text); cursor: pointer; border-radius: 10px;
+      transition: all 0.15s;
+    }
+    .btn:active { opacity: 0.7; }
+    .btn-primary { background: var(--amber); border-color: var(--amber); color: #000; }
+    .btn-sm {
+      display: inline-block; width: auto; padding: 6px 12px;
+      font-size: 0.75rem; font-weight: 700; border-radius: 8px;
+      border: 1px solid var(--border-mid); background: transparent;
+      color: var(--subtext); cursor: pointer;
+    }
+    .btn-sm:active { opacity: 0.6; }
+
+    /* ── TOPBAR ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding-bottom: 10px; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 1rem; font-weight: 800; color: var(--amber); }
+    .topbar-sub { font-size: 0.7rem; color: var(--subtext); margin-top: 2px; }
+
+    /* ── MODE MENU ── */
+    .mode-card {
+      display: flex; align-items: center; gap: 14px;
+      padding: 18px 16px; border-radius: 14px;
+      border: 2px solid var(--border); background: var(--card);
+      cursor: pointer; margin-bottom: 12px; transition: all 0.15s;
+    }
+    .mode-card:active { border-color: var(--amber); background: var(--card2); }
+    .mode-icon { font-size: 2rem; flex-shrink: 0; }
+    .mode-name { font-size: 1.05rem; font-weight: 700; }
+    .mode-desc { font-size: 0.72rem; color: var(--subtext); margin-top: 2px; }
+
+    /* ── LIST ── */
+    .list-scroll { flex: 1; overflow-y: auto; min-height: 0; }
+    .list-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px; border-radius: 10px; background: var(--card);
+      margin-bottom: 6px; cursor: pointer; border: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .list-item:active { background: var(--card2); }
+    .list-item-name { font-size: 0.92rem; font-weight: 600; }
+    .list-item-sub { font-size: 0.68rem; color: var(--subtext); margin-top: 2px; }
+    .badge-green {
+      font-size: 0.65rem; background: rgba(34,197,94,0.15);
+      color: var(--green); border: 1px solid rgba(34,197,94,0.3);
+      padding: 2px 8px; border-radius: 999px; font-weight: 700; flex-shrink: 0;
+    }
+    .badge-red {
+      font-size: 0.65rem; background: rgba(239,68,68,0.15);
+      color: var(--red); border: 1px solid rgba(239,68,68,0.3);
+      padding: 2px 8px; border-radius: 999px; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* ── GAMBAR COUPLE VIEW ── */
+    .couple-card {
+      background: var(--card); border-radius: 14px;
+      border: 2px solid var(--border); margin-bottom: 10px; overflow: hidden;
+    }
+    .couple-header {
+      padding: 8px 12px; font-size: 0.72rem; font-weight: 700;
+      color: var(--subtext); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .couple-frames {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 10px;
+    }
+    .frame-box {
+      position: relative; border-radius: 8px; overflow: hidden;
+      background: #0a0f1e; border: 2px solid var(--border);
+      aspect-ratio: 70 / 22; cursor: pointer;
+    }
+    .frame-box.fakta { aspect-ratio: 16 / 9; }
+    .frame-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .frame-empty {
+      display: flex; align-items: center; justify-content: center;
+      width: 100%; height: 100%; font-size: 0.65rem; color: var(--subtext);
+      flex-direction: column; gap: 3px; padding: 4px;
+      text-align: center;
+    }
+    .frame-label {
+      position: absolute; top: 3px; left: 4px;
+      font-size: 0.55rem; font-weight: 700; background: rgba(0,0,0,0.7);
+      color: #fff; padding: 1px 5px; border-radius: 4px;
+    }
+    .frame-upload-hint {
+      position: absolute; bottom: 3px; right: 4px;
+      font-size: 0.55rem; background: rgba(245,158,11,0.85);
+      color: #000; padding: 1px 5px; border-radius: 4px; font-weight: 700;
+    }
+    .frame-del {
+      position: absolute; top: 3px; right: 4px;
+      font-size: 0.6rem; background: rgba(239,68,68,0.85);
+      color: #fff; padding: 1px 6px; border-radius: 4px; font-weight: 700;
+      cursor: pointer;
+    }
+    .progress-bar {
+      height: 3px; background: var(--amber); border-radius: 999px;
+      transition: width 0.3s ease; width: 0%;
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      font-size: 0.7rem; color: var(--subtext); padding: 4px 0;
+      border-bottom: 1px solid var(--border); margin-bottom: 8px; flex-shrink: 0;
+    }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(30,41,59,0.95); color: var(--text);
+      padding: 10px 18px; border-radius: 999px; font-size: 0.82rem;
+      font-weight: 600; border: 1px solid var(--border-mid);
+      opacity: 0; transition: opacity 0.3s; z-index: 9999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+
+    /* ── CROP OVERLAY ── */
+    #crop-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.95); flex-direction: column;
+      padding: 12px; gap: 10px;
+    }
+    #crop-overlay.active { display: flex; }
+    .crop-top {
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .crop-ratio-row {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap; flex-shrink: 0;
+    }
+    .crop-ratio-btn {
+      padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+      border: 1px solid var(--border-mid); color: var(--subtext);
+      background: transparent; cursor: pointer;
+    }
+    #crop-container {
+      flex: 1; min-height: 0; position: relative; overflow: hidden;
+      border-radius: 12px; background: #000; touch-action: none; cursor: grab;
+    }
+    #crop-canvas, #crop-mask {
+      position: absolute; top: 0; left: 0;
+    }
+    #crop-mask { pointer-events: none; }
+    .crop-actions {
+      display: flex; gap: 10px; flex-shrink: 0;
+    }
+    .crop-actions button {
+      flex: 1; padding: 12px; border-radius: 999px; font-weight: 700;
+      font-size: 0.9rem; cursor: pointer; border: none;
+    }
+    #btn-crop-batal { background: rgba(255,255,255,0.06); color: var(--subtext); border: 1px solid var(--border-mid) !important; }
+    #btn-crop-confirm { background: linear-gradient(135deg,#f59e0b,#d97706); color: #000; }
+  </style>
+</head>
+<body>
+
+<!-- SCREEN: LOGIN -->
+<div id="screen-login" class="screen active">
+  <div class="login-box">
+    <div style="font-size:2.5rem;">🖼️</div>
+    <div class="login-title">Gambar Manager</div>
+    <div class="login-sub">App khas untuk urus gambar G2 laci Bahasa & Fakta</div>
+    <input id="pin-input" class="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="Masukkan PIN">
+    <button class="btn btn-primary" id="btn-login">Masuk</button>
+    <div id="login-err" style="font-size:0.78rem;color:var(--red);min-height:1.2em;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- SCREEN: MODE PILIH -->
+<div id="screen-mode" class="screen">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">🖼️ Gambar Manager</div>
+      <div class="topbar-sub" id="mode-user">—</div>
+    </div>
+    <button class="btn-sm" id="btn-logout" style="color:var(--red);border-color:var(--red);">Keluar</button>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:0;">
+    <div class="mode-card" id="btn-mode-bahasa">
+      <div class="mode-icon">🔤</div>
+      <div>
+        <div class="mode-name">Bahasa</div>
+        <div class="mode-desc">Laci bahasa — gambar G1 & G2 per laci</div>
+      </div>
+    </div>
+    <div class="mode-card" id="btn-mode-fakta">
+      <div class="mode-icon">📚</div>
+      <div>
+        <div class="mode-name">Fakta</div>
+        <div class="mode-desc">Item fakta — gambar G1 & G2 per baris</div>
+      </div>
+    </div>
+  </div>
+  <button class="btn" id="btn-logout2" style="color:var(--subtext);font-size:0.85rem;margin-top:8px;">Logout</button>
+</div>
+
+<!-- SCREEN: BAHASA — JENIS KATA -->
+<div id="screen-b-jenis" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-b-jenis-back">← Mod</button>
+    <div style="text-align:right;">
+      <div class="topbar-title">🔤 Bahasa</div>
+      <div class="topbar-sub">Pilih Jenis Kata</div>
+    </div>
+  </div>
+  <div class="status-bar" id="b-jenis-status">Memuatkan...</div>
+  <div class="list-scroll" id="b-jenis-list"></div>
+</div>
+
+<!-- SCREEN: BAHASA — PERKATAAN -->
+<div id="screen-b-perkataan" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-b-perkataan-back">← Jenis Kata</button>
+    <div style="text-align:right;">
+      <div class="topbar-title" id="b-perkataan-title">Perkataan</div>
+      <div class="topbar-sub" id="b-perkataan-sub">—</div>
+    </div>
+  </div>
+  <div class="status-bar" id="b-perkataan-status">—</div>
+  <div class="list-scroll" id="b-perkataan-list"></div>
+</div>
+
+<!-- SCREEN: BAHASA — LACI GAMBAR -->
+<div id="screen-b-laci" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-b-laci-back">← Perkataan</button>
+    <div style="text-align:right;">
+      <div class="topbar-title" id="b-laci-title">Laci</div>
+      <div class="topbar-sub" id="b-laci-sub">—</div>
+    </div>
+  </div>
+  <div class="status-bar" id="b-laci-status">—</div>
+  <div class="list-scroll" id="b-laci-list"></div>
+</div>
+
+<!-- SCREEN: FAKTA — SUBJECT -->
+<div id="screen-f-subject" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-f-subject-back">← Mod</button>
+    <div style="text-align:right;">
+      <div class="topbar-title">📚 Fakta</div>
+      <div class="topbar-sub">Pilih Subjek</div>
+    </div>
+  </div>
+  <div class="status-bar" id="f-subject-status">Memuatkan...</div>
+  <div class="list-scroll" id="f-subject-list"></div>
+</div>
+
+<!-- SCREEN: FAKTA — TOPIC -->
+<div id="screen-f-topic" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-f-topic-back">← Subjek</button>
+    <div style="text-align:right;">
+      <div class="topbar-title" id="f-topic-title">Topik</div>
+      <div class="topbar-sub" id="f-topic-sub">—</div>
+    </div>
+  </div>
+  <div class="status-bar" id="f-topic-status">—</div>
+  <div class="list-scroll" id="f-topic-list"></div>
+</div>
+
+<!-- SCREEN: FAKTA — DRAWER ITEM -->
+<div id="screen-f-drawer" class="screen">
+  <div class="topbar">
+    <button class="btn-sm" id="btn-f-drawer-back">← Topik</button>
+    <div style="text-align:right;">
+      <div class="topbar-title" id="f-drawer-title">Laci</div>
+      <div class="topbar-sub" id="f-drawer-sub">—</div>
+    </div>
+  </div>
+  <div class="status-bar" id="f-drawer-status">—</div>
+  <div class="list-scroll" id="f-drawer-list"></div>
+</div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="file-input" accept="image/*" style="display:none;">
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CROP OVERLAY -->
+<div id="crop-overlay">
+  <div class="crop-top">
+    <div style="font-size:0.85rem;font-weight:700;color:var(--amber);">✂️ Crop Gambar</div>
+    <div style="font-size:0.7rem;color:var(--subtext);">Drag / Pinch untuk zoom</div>
+  </div>
+  <div class="crop-ratio-row">
+    <span style="font-size:0.68rem;color:var(--subtext);">Nisbah:</span>
+    <button class="crop-ratio-btn" data-ratio="3.1818">70:22</button>
+    <button class="crop-ratio-btn" data-ratio="1.7778">16:9</button>
+    <button class="crop-ratio-btn" data-ratio="1.3333">4:3</button>
+    <button class="crop-ratio-btn" data-ratio="1">1:1</button>
+    <input id="crop-ratio-w" type="number" min="1" max="99" value="70" style="width:38px;padding:4px 6px;border-radius:6px;border:1px solid var(--border-mid);background:var(--card);color:var(--text);font-size:0.75rem;text-align:center;">
+    <span style="color:var(--subtext);font-size:0.8rem;">:</span>
+    <input id="crop-ratio-h" type="number" min="1" max="99" value="22" style="width:38px;padding:4px 6px;border-radius:6px;border:1px solid var(--border-mid);background:var(--card);color:var(--text);font-size:0.75rem;text-align:center;">
+    <button id="btn-crop-ratio-apply" style="padding:4px 10px;border-radius:999px;font-size:0.7rem;font-weight:700;background:rgba(245,158,11,0.15);border:1px solid #f59e0b;color:#f59e0b;cursor:pointer;">✓</button>
+  </div>
+  <div id="crop-progress" style="height:3px;background:var(--border);border-radius:999px;flex-shrink:0;">
+    <div class="progress-bar" id="crop-progress-bar"></div>
+  </div>
+  <div id="crop-container">
+    <canvas id="crop-canvas"></canvas>
+    <canvas id="crop-mask"></canvas>
+  </div>
+  <div class="crop-actions">
+    <button id="btn-crop-batal">Batal</button>
+    <button id="btn-crop-confirm">✅ Guna Gambar Ini</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+import {
+  getFirestore, collection, getDocs, doc, updateDoc, onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+
+// ── CONFIG ──
+const firebaseConfig = {
+  apiKey: "AIzaSyAGLX_xxH_dQ06epX4XCXtuSHN0DwZFMjA",
+  authDomain: "stress-auti-action.firebaseapp.com",
+  projectId: "stress-auti-action",
+  storageBucket: "stress-auti-action.firebasestorage.app",
+  messagingSenderId: "792580618622",
+  appId: "1:792580618622:web:f0efb1d630e795584d5b2f"
+};
+const ADMIN_EMAIL = 'adha86614@gmail.com';
+const CROP_RATIO_BAHASA = 70 / 22;
+const CROP_RATIO_FAKTA = 16 / 9;
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+let currentUser = null;
+let allJenisKata = [], allBahasaPerkataan = [], allBahasaDrawers = [];
+let allSubjects = [], allTopics = [], allDrawers = [];
+let activeJenisId = '', activePerkataanId = '', activeDrawerId = '';
+let activeSubjectId = '', activeTopicId = '';
+let CROP_RATIO = CROP_RATIO_BAHASA;
+let cropRatioW = 70, cropRatioH = 22;
+let cropImg = null, cropCallback = null;
+let cropState = { imgX:0,imgY:0,imgW:0,imgH:0,scale:1,lastDist:0,isDragging:false,lastTouchX:0,lastTouchY:0 };
+
+// ── UTILS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toast(msg, dur = 2500) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function sortAlphaNum(arr, key) {
+  return arr.slice().sort((a, b) => (a[key] || '').localeCompare(b[key] || '', undefined, { numeric: true }));
+}
+
+// ── AUTH ──
+document.getElementById('btn-login').onclick = async () => {
+  const pin = document.getElementById('pin-input').value.trim();
+  const err = document.getElementById('login-err');
+  if (!/^\d{4,6}$/.test(pin)) { err.textContent = 'PIN mesti 4-6 digit.'; return; }
+  try {
+    err.textContent = '';
+    await signInWithEmailAndPassword(auth, ADMIN_EMAIL, pin);
+  } catch(e) {
+    err.textContent = e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+      ? '❌ PIN salah.' : '❌ ' + e.message;
+  }
+};
+document.getElementById('pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('btn-login').click();
+});
+
+function doLogout() { signOut(auth); }
+document.getElementById('btn-logout').onclick = doLogout;
+document.getElementById('btn-logout2').onclick = doLogout;
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  if (user) {
+    document.getElementById('mode-user').textContent = user.email;
+    loadAllCollections();
+    showScreen('screen-mode');
+  } else {
+    document.getElementById('pin-input').value = '';
+    showScreen('screen-login');
+  }
+});
+
+// ── LOAD COLLECTIONS ──
+function loadAllCollections() {
+  if (!currentUser) return;
+  const uid = currentUser.uid;
+  onSnapshot(query(collection(db, 'users', uid, 'jenis_kata')), snap => {
+    allJenisKata = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  onSnapshot(query(collection(db, 'users', uid, 'bahasa_perkataan')), snap => {
+    allBahasaPerkataan = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  onSnapshot(query(collection(db, 'users', uid, 'bahasa_drawers')), snap => {
+    allBahasaDrawers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  onSnapshot(query(collection(db, 'users', uid, 'subjects')), snap => {
+    allSubjects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  onSnapshot(query(collection(db, 'users', uid, 'topics')), snap => {
+    allTopics = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  });
+  onSnapshot(query(collection(db, 'users', uid, 'drawer')), snap => {
+    allDrawers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Refresh view jika dalam fakta drawer
+    if (document.getElementById('screen-f-drawer').classList.contains('active')) {
+      renderFaktaDrawer();
+    }
+    // Refresh bahasa laci jika aktif
+    if (document.getElementById('screen-b-laci').classList.contains('active')) {
+      renderBahasaLaci();
+    }
+  });
+}
+
+// ═══════════════════════════════════════
+// BAHASA
+// ═══════════════════════════════════════
+document.getElementById('btn-mode-bahasa').onclick = () => {
+  renderBahasaJenis();
+  showScreen('screen-b-jenis');
+};
+document.getElementById('btn-b-jenis-back').onclick = () => showScreen('screen-mode');
+document.getElementById('btn-b-perkataan-back').onclick = () => {
+  renderBahasaJenis();
+  showScreen('screen-b-jenis');
+};
+document.getElementById('btn-b-laci-back').onclick = () => {
+  renderBahasaPerkataan(activeJenisId);
+  showScreen('screen-b-perkataan');
+};
+
+function renderBahasaJenis() {
+  const list = document.getElementById('b-jenis-list');
+  const sorted = sortAlphaNum(allJenisKata, 'name');
+  document.getElementById('b-jenis-status').textContent = sorted.length + ' jenis kata';
+  if (!sorted.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada jenis kata.</div>'; return; }
+  list.innerHTML = '';
+  sorted.forEach(j => {
+    // Kira status G2
+    const drawers = allBahasaDrawers.filter(d => {
+      const p = allBahasaPerkataan.find(p => p.jenisId === j.id);
+      return p && d.perkataanId === p.id;
+    });
+    // Semak semua perkataan dalam jenis ni
+    const perkataans = allBahasaPerkataan.filter(p => p.jenisId === j.id);
+    let totalLaci = 0, g2Full = 0;
+    perkataans.forEach(p => {
+      const laci = allBahasaDrawers.filter(d => d.perkataanId === p.id && d.imageUrl);
+      totalLaci += laci.length;
+      g2Full += laci.filter(d => d.imageUrl11).length;
+    });
+    const allDone = totalLaci > 0 && g2Full === totalLaci;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div>
+        <div class="list-item-name">${j.name || '(Tanpa Nama)'}</div>
+        <div class="list-item-sub">${perkataans.length} perkataan · ${g2Full}/${totalLaci} G2</div>
+      </div>
+      <span class="${allDone ? 'badge-green' : 'badge-red'}">${allDone ? '✓ Lengkap' : 'Belum Penuh'}</span>
+    `;
+    div.onclick = () => {
+      activeJenisId = j.id;
+      document.getElementById('b-perkataan-title').textContent = j.name || 'Perkataan';
+      renderBahasaPerkataan(j.id);
+      showScreen('screen-b-perkataan');
+    };
+    list.appendChild(div);
+  });
+}
+
+function renderBahasaPerkataan(jenisId) {
+  const list = document.getElementById('b-perkataan-list');
+  const perkataans = sortAlphaNum(allBahasaPerkataan.filter(p => p.jenisId === jenisId), 'name');
+  document.getElementById('b-perkataan-status').textContent = perkataans.length + ' perkataan';
+  document.getElementById('b-perkataan-sub').textContent = (allJenisKata.find(j => j.id === jenisId) || {}).name || '';
+  if (!perkataans.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada perkataan.</div>'; return; }
+  list.innerHTML = '';
+  perkataans.forEach(p => {
+    const laci = allBahasaDrawers.filter(d => d.perkataanId === p.id && d.imageUrl);
+    const g2Done = laci.filter(d => d.imageUrl11).length;
+    const allDone = laci.length > 0 && g2Done === laci.length;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.style.borderColor = allDone ? 'rgba(34,197,94,0.3)' : 'transparent';
+    div.innerHTML = `
+      <div>
+        <div class="list-item-sub" style="font-size:0.7rem;margin-bottom:2px;">${laci.length} laci bergambar</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;max-width:220px;">
+          ${laci.slice(0, 6).map(d => `
+            <div style="width:32px;height:10px;border-radius:3px;background:${d.imageUrl11 ? 'var(--green)' : 'var(--red)'};opacity:0.8;"></div>
+          `).join('')}
+          ${laci.length > 6 ? `<div style="font-size:0.6rem;color:var(--subtext);align-self:center;">+${laci.length-6}</div>` : ''}
+        </div>
+        <div class="list-item-sub" style="margin-top:3px;">${g2Done}/${laci.length} G2 lengkap</div>
+      </div>
+      <span class="${allDone ? 'badge-green' : 'badge-red'}">${allDone ? '✓' : '!'}</span>
+    `;
+    div.onclick = () => {
+      activePerkataanId = p.id;
+      document.getElementById('b-laci-title').textContent = 'Laci — ' + (p.name || '');
+      document.getElementById('b-laci-sub').textContent = (allJenisKata.find(j => j.id === jenisId) || {}).name || '';
+      renderBahasaLaci();
+      showScreen('screen-b-laci');
+    };
+    list.appendChild(div);
+  });
+}
+
+function renderBahasaLaci() {
+  const list = document.getElementById('b-laci-list');
+  const laci = sortAlphaNum(allBahasaDrawers.filter(d => d.perkataanId === activePerkataanId && d.imageUrl), 'title');
+  const g2Done = laci.filter(d => d.imageUrl11).length;
+  document.getElementById('b-laci-status').textContent = `${g2Done}/${laci.length} G2 lengkap`;
+  if (!laci.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada laci bergambar.</div>'; return; }
+  list.innerHTML = '';
+  laci.forEach(d => {
+    const card = buildCoupleCard(d.title || d.id, d.imageUrl, d.imageUrl11, false,
+      // Upload G2
+      (file) => uploadBahasaG2(d, file),
+      // Padam G2
+      () => deleteBahasaG2(d)
+    );
+    list.appendChild(card);
+  });
+}
+
+async function uploadBahasaG2(drawer, blob) {
+  toast('⏫ Memuat naik G2...');
+  const uid = currentUser.uid;
+  const path = `users/${uid}/bahasa_images/${drawer.id}_11.jpg`;
+  const storageRef = ref(storage, path);
+  try {
+    const task = uploadBytesResumable(storageRef, blob);
+    task.on('state_changed', snap => {
+      const pct = (snap.bytesTransferred / snap.totalBytes * 100).toFixed(0);
+      document.getElementById('crop-progress-bar').style.width = pct + '%';
+    });
+    await task;
+    const url = await getDownloadURL(storageRef);
+    await updateDoc(doc(db, 'users', uid, 'bahasa_drawers', drawer.id), { imageUrl11: url });
+    toast('✅ G2 berjaya disimpan!');
+  } catch(e) { toast('❌ Gagal: ' + e.message); }
+}
+
+async function deleteBahasaG2(drawer) {
+  if (!confirm('Padam G2 untuk laci ini?')) return;
+  const uid = currentUser.uid;
+  try {
+    await deleteObject(ref(storage, `users/${uid}/bahasa_images/${drawer.id}_11.jpg`)).catch(() => {});
+    await updateDoc(doc(db, 'users', uid, 'bahasa_drawers', drawer.id), { imageUrl11: '' });
+    toast('🗑️ G2 dipadam.');
+  } catch(e) { toast('❌ Gagal padam: ' + e.message); }
+}
+
+// ═══════════════════════════════════════
+// FAKTA
+// ═══════════════════════════════════════
+document.getElementById('btn-mode-fakta').onclick = () => {
+  renderFaktaSubject();
+  showScreen('screen-f-subject');
+};
+document.getElementById('btn-f-subject-back').onclick = () => showScreen('screen-mode');
+document.getElementById('btn-f-topic-back').onclick = () => {
+  renderFaktaSubject();
+  showScreen('screen-f-subject');
+};
+document.getElementById('btn-f-drawer-back').onclick = () => {
+  renderFaktaTopic(activeSubjectId);
+  showScreen('screen-f-topic');
+};
+
+function renderFaktaSubject() {
+  const list = document.getElementById('f-subject-list');
+  const sorted = sortAlphaNum(allSubjects, 'name');
+  document.getElementById('f-subject-status').textContent = sorted.length + ' subjek';
+  if (!sorted.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada subjek.</div>'; return; }
+  list.innerHTML = '';
+  sorted.forEach(s => {
+    const topics = allTopics.filter(t => t.subjectId === s.id);
+    // Kira G2 status
+    let totalItems = 0, g2Done = 0;
+    topics.forEach(t => {
+      const drawers = allDrawers.filter(d => d.topicId === t.id);
+      drawers.forEach(d => {
+        (d.items || []).forEach(it => {
+          if (it.imageUrl) { totalItems++; if (it.imageUrl11) g2Done++; }
+        });
+      });
+    });
+    const allDone = totalItems > 0 && g2Done === totalItems;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div>
+        <div class="list-item-name">${s.name || '(Tanpa Nama)'}</div>
+        <div class="list-item-sub">${topics.length} topik · ${g2Done}/${totalItems} G2</div>
+      </div>
+      <span class="${allDone ? 'badge-green' : 'badge-red'}">${allDone ? '✓ Lengkap' : 'Belum Penuh'}</span>
+    `;
+    div.onclick = () => {
+      activeSubjectId = s.id;
+      document.getElementById('f-topic-title').textContent = s.name || 'Topik';
+      renderFaktaTopic(s.id);
+      showScreen('screen-f-topic');
+    };
+    list.appendChild(div);
+  });
+}
+
+function renderFaktaTopic(subjectId) {
+  const list = document.getElementById('f-topic-list');
+  const topics = sortAlphaNum(allTopics.filter(t => t.subjectId === subjectId), 'name');
+  document.getElementById('f-topic-status').textContent = topics.length + ' topik';
+  document.getElementById('f-topic-sub').textContent = (allSubjects.find(s => s.id === subjectId) || {}).name || '';
+  if (!topics.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada topik.</div>'; return; }
+  list.innerHTML = '';
+  topics.forEach(t => {
+    const drawers = allDrawers.filter(d => d.topicId === t.id);
+    let totalItems = 0, g2Done = 0;
+    drawers.forEach(d => {
+      (d.items || []).forEach(it => {
+        if (it.imageUrl) { totalItems++; if (it.imageUrl11) g2Done++; }
+      });
+    });
+    const allDone = totalItems > 0 && g2Done === totalItems;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div>
+        <div class="list-item-name">${t.name || '(Tanpa Nama)'}</div>
+        <div class="list-item-sub">${drawers.length} laci · ${g2Done}/${totalItems} G2</div>
+      </div>
+      <span class="${allDone ? 'badge-green' : 'badge-red'}">${allDone ? '✓ Lengkap' : 'Belum Penuh'}</span>
+    `;
+    div.onclick = () => {
+      activeTopicId = t.id;
+      document.getElementById('f-drawer-title').textContent = t.name || 'Laci';
+      document.getElementById('f-drawer-sub').textContent = (allSubjects.find(s => s.id === subjectId) || {}).name || '';
+      renderFaktaDrawer();
+      showScreen('screen-f-drawer');
+    };
+    list.appendChild(div);
+  });
+}
+
+function renderFaktaDrawer() {
+  const list = document.getElementById('f-drawer-list');
+  const drawers = sortAlphaNum(allDrawers.filter(d => d.topicId === activeTopicId), 'title');
+  let totalItems = 0, g2Done = 0;
+  drawers.forEach(d => {
+    (d.items || []).forEach(it => {
+      if (it.imageUrl) { totalItems++; if (it.imageUrl11) g2Done++; }
+    });
+  });
+  document.getElementById('f-drawer-status').textContent = `${g2Done}/${totalItems} G2 lengkap`;
+  if (!drawers.length) { list.innerHTML = '<div style="color:var(--subtext);padding:12px;text-align:center;">Tiada laci.</div>'; return; }
+  list.innerHTML = '';
+  drawers.forEach(d => {
+    const items = (d.items || []).filter(it => it.imageUrl);
+    if (!items.length) return;
+    // Header laci
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:0.72rem;font-weight:700;color:var(--amber);padding:6px 2px 4px;';
+    header.textContent = d.title || d.id;
+    list.appendChild(header);
+    // Setiap item
+    items.forEach((it, idx) => {
+      // Cari index sebenar dalam items array (termasuk yang tiada gambar)
+      const realIdx = (d.items || []).indexOf(it);
+      const card = buildCoupleCard(
+        'Baris ' + (realIdx + 1) + (it.ayat ? ' — ' + it.ayat.slice(0, 30) : ''),
+        it.imageUrl, it.imageUrl11, true,
+        (file) => uploadFaktaG2(d, realIdx, it, file),
+        () => deleteFaktaG2(d, realIdx, it)
+      );
+      list.appendChild(card);
+    });
+  });
+}
+
+async function uploadFaktaG2(drawer, idx, item, blob) {
+  toast('⏫ Memuat naik G2...');
+  const uid = currentUser.uid;
+  const path = `users/${uid}/fakta_images/${drawer.id}_${idx}_11.jpg`;
+  const storageRef = ref(storage, path);
+  try {
+    const task = uploadBytesResumable(storageRef, blob);
+    task.on('state_changed', snap => {
+      const pct = (snap.bytesTransferred / snap.totalBytes * 100).toFixed(0);
+      document.getElementById('crop-progress-bar').style.width = pct + '%';
+    });
+    await task;
+    const url = await getDownloadURL(storageRef);
+    const newItems = (drawer.items || []).map((it, i) => i === idx ? { ...it, imageUrl11: url } : it);
+    await updateDoc(doc(db, 'users', uid, 'drawer', drawer.id), { items: newItems });
+    toast('✅ G2 berjaya disimpan!');
+  } catch(e) { toast('❌ Gagal: ' + e.message); }
+}
+
+async function deleteFaktaG2(drawer, idx, item) {
+  if (!confirm('Padam G2 untuk baris ini?')) return;
+  const uid = currentUser.uid;
+  try {
+    await deleteObject(ref(storage, `users/${uid}/fakta_images/${drawer.id}_${idx}_11.jpg`)).catch(() => {});
+    const newItems = (drawer.items || []).map((it, i) => i === idx ? { ...it, imageUrl11: '' } : it);
+    await updateDoc(doc(db, 'users', uid, 'drawer', drawer.id), { items: newItems });
+    toast('🗑️ G2 dipadam.');
+  } catch(e) { toast('❌ Gagal padam: ' + e.message); }
+}
+
+// ═══════════════════════════════════════
+// COUPLE CARD BUILDER
+// ═══════════════════════════════════════
+function buildCoupleCard(title, g1Url, g2Url, isFakta, onUploadG2, onDeleteG2) {
+  const card = document.createElement('div');
+  card.className = 'couple-card';
+  const frameClass = isFakta ? 'frame-box fakta' : 'frame-box';
+
+  const header = document.createElement('div');
+  header.className = 'couple-header';
+  header.innerHTML = `
+    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${title}</span>
+    <span class="${g2Url ? 'badge-green' : 'badge-red'}">${g2Url ? '✓ G2 Ada' : 'G2 Kosong'}</span>
+  `;
+  card.appendChild(header);
+
+  const frames = document.createElement('div');
+  frames.className = 'couple-frames';
+
+  // G1 — read only
+  const g1 = document.createElement('div');
+  g1.className = frameClass;
+  g1.innerHTML = g1Url
+    ? `<img src="${g1Url}" alt="G1" loading="lazy"><div class="frame-label">G1</div>`
+    : `<div class="frame-empty"><span>📷</span><span>Tiada G1</span></div>`;
+
+  // G2 — boleh upload
+  const g2 = document.createElement('div');
+  g2.className = frameClass;
+  if (g2Url) {
+    g2.innerHTML = `
+      <img src="${g2Url}" alt="G2" loading="lazy">
+      <div class="frame-label">G2</div>
+      <div class="frame-del" id="del-${Math.random().toString(36).slice(2)}">✕</div>
+    `;
+    g2.querySelector('[id^="del-"]').onclick = (e) => { e.stopPropagation(); onDeleteG2(); };
+    g2.onclick = () => {
+      CROP_RATIO = isFakta ? CROP_RATIO_FAKTA : CROP_RATIO_BAHASA;
+      cropRatioW = isFakta ? 16 : 70; cropRatioH = isFakta ? 9 : 22;
+      triggerFileInput(onUploadG2);
+    };
+  } else {
+    g2.innerHTML = `
+      <div class="frame-empty"><span>📷</span><span>Tap untuk upload G2</span></div>
+      <div class="frame-label">G2</div>
+      <div class="frame-upload-hint">+ Upload</div>
+    `;
+    g2.onclick = () => {
+      CROP_RATIO = isFakta ? CROP_RATIO_FAKTA : CROP_RATIO_BAHASA;
+      cropRatioW = isFakta ? 16 : 70; cropRatioH = isFakta ? 9 : 22;
+      triggerFileInput(onUploadG2);
+    };
+  }
+
+  frames.appendChild(g1);
+  frames.appendChild(g2);
+  card.appendChild(frames);
+  return card;
+}
+
+// ═══════════════════════════════════════
+// FILE INPUT + CROP
+// ═══════════════════════════════════════
+function triggerFileInput(cb) {
+  const input = document.getElementById('file-input');
+  input.value = '';
+  input.onchange = (e) => {
+    if (!e.target.files[0]) return;
+    bukaCropTool(e.target.files[0], cb);
+  };
+  input.click();
+}
+
+function bukaCropTool(file, callback) {
+  cropCallback = callback;
+  _patchCropRatioBtns();
+  document.getElementById('crop-progress-bar').style.width = '0%';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      cropImg = img;
+      document.getElementById('crop-overlay').classList.add('active');
+      initCrop();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function _patchCropRatioBtns() {
+  document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+    const r = parseFloat(btn.dataset.ratio);
+    const aktif = Math.abs(r - CROP_RATIO) < 0.01;
+    btn.style.background = aktif ? 'rgba(245,158,11,0.15)' : 'transparent';
+    btn.style.color = aktif ? '#f59e0b' : 'var(--subtext)';
+    btn.style.borderColor = aktif ? '#f59e0b' : 'var(--border-mid)';
+  });
+}
+
+function initCrop() {
+  const container = document.getElementById('crop-container');
+  const canvas = document.getElementById('crop-canvas');
+  const mask = document.getElementById('crop-mask');
+  const W = container.clientWidth, H = container.clientHeight;
+  canvas.width = W; canvas.height = H;
+  mask.width = W; mask.height = H;
+  let cropW, cropH;
+  if (W / H > CROP_RATIO) { cropH = H * 0.85; cropW = cropH * CROP_RATIO; }
+  else { cropW = W * 0.85; cropH = cropW / CROP_RATIO; }
+  canvas._cropW = cropW; canvas._cropH = cropH;
+  canvas._cropX = (W - cropW) / 2; canvas._cropY = (H - cropH) / 2;
+  const scaleW = cropW / cropImg.naturalWidth;
+  const scaleH = cropH / cropImg.naturalHeight;
+  cropState.scale = Math.max(scaleW, scaleH);
+  cropState.imgW = cropImg.naturalWidth * cropState.scale;
+  cropState.imgH = cropImg.naturalHeight * cropState.scale;
+  cropState.imgX = canvas._cropX + (cropW - cropState.imgW) / 2;
+  cropState.imgY = canvas._cropY + (cropH - cropState.imgH) / 2;
+  drawCrop();
+}
+
+function drawCrop() {
+  const canvas = document.getElementById('crop-canvas');
+  const mask = document.getElementById('crop-mask');
+  if (!canvas || !mask || !cropImg) return;
+  const ctx = canvas.getContext('2d');
+  const mCtx = mask.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = canvas._cropX, cy = canvas._cropY, cw = canvas._cropW, ch = canvas._cropH;
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(cropImg, cropState.imgX, cropState.imgY, cropState.imgW, cropState.imgH);
+  mCtx.clearRect(0, 0, W, H);
+  mCtx.fillStyle = 'rgba(0,0,0,0.6)';
+  mCtx.fillRect(0, 0, W, H);
+  mCtx.clearRect(cx, cy, cw, ch);
+  mCtx.strokeStyle = '#f59e0b';
+  mCtx.lineWidth = 2;
+  mCtx.strokeRect(cx, cy, cw, ch);
+  mCtx.strokeStyle = 'rgba(245,158,11,0.3)';
+  mCtx.lineWidth = 0.5;
+  for (let i = 1; i < 3; i++) {
+    mCtx.beginPath(); mCtx.moveTo(cx + (cw/3)*i, cy); mCtx.lineTo(cx + (cw/3)*i, cy+ch); mCtx.stroke();
+    mCtx.beginPath(); mCtx.moveTo(cx, cy + (ch/3)*i); mCtx.lineTo(cx+cw, cy + (ch/3)*i); mCtx.stroke();
+  }
+}
+
+function clampCrop() {
+  const canvas = document.getElementById('crop-canvas');
+  if (!canvas) return;
+  const cx = canvas._cropX, cy = canvas._cropY, cw = canvas._cropW, ch = canvas._cropH;
+  if (cropState.imgX > cx) cropState.imgX = cx;
+  if (cropState.imgY > cy) cropState.imgY = cy;
+  if (cropState.imgX + cropState.imgW < cx + cw) cropState.imgX = cx + cw - cropState.imgW;
+  if (cropState.imgY + cropState.imgH < cy + ch) cropState.imgY = cy + ch - cropState.imgH;
+}
+
+const cropContainer = document.getElementById('crop-container');
+cropContainer.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) { cropState.isDragging = true; cropState.lastTouchX = e.touches[0].clientX; cropState.lastTouchY = e.touches[0].clientY; }
+  else if (e.touches.length === 2) { cropState.isDragging = false; cropState.lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+}, { passive: false });
+cropContainer.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1 && cropState.isDragging) {
+    cropState.imgX += e.touches[0].clientX - cropState.lastTouchX;
+    cropState.imgY += e.touches[0].clientY - cropState.lastTouchY;
+    cropState.lastTouchX = e.touches[0].clientX; cropState.lastTouchY = e.touches[0].clientY;
+    clampCrop(); drawCrop();
+  } else if (e.touches.length === 2) {
+    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    const delta = dist / cropState.lastDist;
+    const canvas = document.getElementById('crop-canvas');
+    const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    cropState.imgX = midX - (midX - cropState.imgX) * delta;
+    cropState.imgY = midY - (midY - cropState.imgY) * delta;
+    cropState.imgW *= delta; cropState.imgH *= delta; cropState.scale *= delta;
+    cropState.lastDist = dist;
+    const minScale = Math.max(canvas._cropW / cropImg.naturalWidth, canvas._cropH / cropImg.naturalHeight);
+    if (cropState.scale < minScale) {
+      const r = minScale / cropState.scale;
+      cropState.imgW *= r; cropState.imgH *= r; cropState.scale = minScale;
+    }
+    clampCrop(); drawCrop();
+  }
+}, { passive: false });
+cropContainer.addEventListener('touchend', () => { cropState.isDragging = false; });
+cropContainer.addEventListener('mousedown', e => { e.preventDefault(); cropState.isDragging = true; cropState.lastTouchX = e.clientX; cropState.lastTouchY = e.clientY; cropContainer.style.cursor = 'grabbing'; });
+cropContainer.addEventListener('mousemove', e => {
+  if (!cropState.isDragging) return;
+  cropState.imgX += e.clientX - cropState.lastTouchX; cropState.imgY += e.clientY - cropState.lastTouchY;
+  cropState.lastTouchX = e.clientX; cropState.lastTouchY = e.clientY;
+  clampCrop(); drawCrop();
+});
+cropContainer.addEventListener('mouseup', () => { cropState.isDragging = false; cropContainer.style.cursor = 'grab'; });
+cropContainer.addEventListener('mouseleave', () => { cropState.isDragging = false; cropContainer.style.cursor = 'grab'; });
+cropContainer.addEventListener('wheel', e => {
+  e.preventDefault();
+  const canvas = document.getElementById('crop-canvas');
+  if (!canvas || !cropImg) return;
+  const rect = cropContainer.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left, mouseY = e.clientY - rect.top;
+  const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+  cropState.imgX = mouseX - (mouseX - cropState.imgX) * zoomFactor;
+  cropState.imgY = mouseY - (mouseY - cropState.imgY) * zoomFactor;
+  cropState.imgW *= zoomFactor; cropState.imgH *= zoomFactor; cropState.scale *= zoomFactor;
+  const minScale = Math.max(canvas._cropW / cropImg.naturalWidth, canvas._cropH / cropImg.naturalHeight);
+  if (cropState.scale < minScale) {
+    const r = minScale / cropState.scale;
+    cropState.imgX = mouseX - (mouseX - cropState.imgX) * r;
+    cropState.imgY = mouseY - (mouseY - cropState.imgY) * r;
+    cropState.imgW *= r; cropState.imgH *= r; cropState.scale = minScale;
+  }
+  clampCrop(); drawCrop();
+}, { passive: false });
+cropContainer.style.cursor = 'grab';
+
+document.getElementById('btn-crop-batal').onclick = () => {
+  document.getElementById('crop-overlay').classList.remove('active');
+  cropImg = null; cropCallback = null;
+};
+
+document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+  btn.onclick = () => {
+    CROP_RATIO = parseFloat(btn.dataset.ratio);
+    const label = btn.textContent.trim().split(':');
+    if (label.length === 2) {
+      cropRatioW = parseInt(label[0]); cropRatioH = parseInt(label[1]);
+      document.getElementById('crop-ratio-w').value = cropRatioW;
+      document.getElementById('crop-ratio-h').value = cropRatioH;
+    }
+    _patchCropRatioBtns();
+    if (cropImg) initCrop();
+  };
+});
+
+document.getElementById('btn-crop-ratio-apply').onclick = () => {
+  const w = parseFloat(document.getElementById('crop-ratio-w').value) || 1;
+  const h = parseFloat(document.getElementById('crop-ratio-h').value) || 1;
+  cropRatioW = w; cropRatioH = h; CROP_RATIO = w / h;
+  _patchCropRatioBtns();
+  if (cropImg) initCrop();
+};
+
+document.getElementById('btn-crop-confirm').onclick = () => {
+  const canvas = document.getElementById('crop-canvas');
+  if (!canvas || !cropImg) return;
+  const outW = 1180, outH = Math.round(outW / CROP_RATIO);
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = outW; outCanvas.height = outH;
+  const outCtx = outCanvas.getContext('2d');
+  const cx = canvas._cropX, cy = canvas._cropY, cw = canvas._cropW, ch = canvas._cropH;
+  const srcX = (cx - cropState.imgX) / cropState.scale;
+  const srcY = (cy - cropState.imgY) / cropState.scale;
+  const srcW = cw / cropState.scale, srcH = ch / cropState.scale;
+  outCtx.drawImage(cropImg, srcX, srcY, srcW, srcH, 0, 0, outW, outH);
+  outCanvas.toBlob(blob => {
+    document.getElementById('crop-overlay').classList.remove('active');
+    cropImg = null;
+    if (cropCallback) { cropCallback(blob); cropCallback = null; }
+  }, 'image/jpeg', 0.9);
+};
+
+// ── SERVICE WORKER ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
