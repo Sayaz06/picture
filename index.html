@@ -611,16 +611,20 @@ async function uploadBahasaG2(drawer, blob) {
     const url = await getDownloadURL(storageRef);
     await updateDoc(doc(db, 'users', uid, 'bahasa_drawers', drawer.id), { imageUrl11: url });
     toast('✅ G2 berjaya disimpan!');
+    renderBahasaLaci();
   } catch(e) { toast('❌ Gagal: ' + e.message); }
 }
 
 async function deleteBahasaG2(drawer) {
-  if (!confirm('Padam G2 untuk laci ini?')) return;
   const uid = currentUser.uid;
+  const drawerId = drawer.id;
+  if (!confirm('Padam G2 untuk laci ini?')) return;
   try {
-    await deleteObject(ref(storage, `users/${uid}/bahasa_images/${drawer.id}_11.jpg`)).catch(() => {});
-    await updateDoc(doc(db, 'users', uid, 'bahasa_drawers', drawer.id), { imageUrl11: '' });
+    const storageRef = ref(storage, `users/${uid}/bahasa_images/${drawerId}_11.jpg`);
+    try { await deleteObject(storageRef); } catch(e) { /* file mungkin dah tiada */ }
+    await updateDoc(doc(db, 'users', uid, 'bahasa_drawers', drawerId), { imageUrl11: '' });
     toast('🗑️ G2 dipadam.');
+    renderBahasaLaci();
   } catch(e) { toast('❌ Gagal padam: ' + e.message); }
 }
 
@@ -763,20 +767,29 @@ async function uploadFaktaG2(drawer, idx, item, blob) {
     });
     await task;
     const url = await getDownloadURL(storageRef);
-    const newItems = (drawer.items || []).map((it, i) => i === idx ? { ...it, imageUrl11: url } : it);
+    const freshDrawer = allDrawers.find(d => d.id === drawer.id);
+    const baseItems = freshDrawer ? (freshDrawer.items || []) : (drawer.items || []);
+    const newItems = baseItems.map((it, i) => i === idx ? { ...it, imageUrl11: url } : it);
     await updateDoc(doc(db, 'users', uid, 'drawer', drawer.id), { items: newItems });
     toast('✅ G2 berjaya disimpan!');
+    renderFaktaDrawer();
   } catch(e) { toast('❌ Gagal: ' + e.message); }
 }
 
 async function deleteFaktaG2(drawer, idx, item) {
-  if (!confirm('Padam G2 untuk baris ini?')) return;
   const uid = currentUser.uid;
+  const drawerId = drawer.id;
+  if (!confirm('Padam G2 untuk baris ini?')) return;
   try {
-    await deleteObject(ref(storage, `users/${uid}/fakta_images/${drawer.id}_${idx}_11.jpg`)).catch(() => {});
-    const newItems = (drawer.items || []).map((it, i) => i === idx ? { ...it, imageUrl11: '' } : it);
-    await updateDoc(doc(db, 'users', uid, 'drawer', drawer.id), { items: newItems });
+    const storageRef = ref(storage, `users/${uid}/fakta_images/${drawerId}_${idx}_11.jpg`);
+    try { await deleteObject(storageRef); } catch(e) { /* file mungkin dah tiada */ }
+    // Baca semula drawer terkini dari allDrawers untuk elak stale data
+    const freshDrawer = allDrawers.find(d => d.id === drawerId);
+    const baseItems = freshDrawer ? (freshDrawer.items || []) : (drawer.items || []);
+    const newItems = baseItems.map((it, i) => i === idx ? { ...it, imageUrl11: '' } : it);
+    await updateDoc(doc(db, 'users', uid, 'drawer', drawerId), { items: newItems });
     toast('🗑️ G2 dipadam.');
+    renderFaktaDrawer();
   } catch(e) { toast('❌ Gagal padam: ' + e.message); }
 }
 
