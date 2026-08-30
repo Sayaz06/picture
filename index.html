@@ -252,6 +252,13 @@
     </div>
     <button class="btn-sm" id="btn-logout" style="color:var(--red);border-color:var(--red);">Keluar</button>
   </div>
+  <!-- ── NOTA KOS FIREBASE ── -->
+  <div style="font-size:0.65rem;color:var(--subtext);background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.6;">
+    ℹ️ <strong style="color:var(--amber);">Nota Kos Firebase:</strong>
+    Gambar hanya diload apabila user masuk page <em>Laci Bahasa</em> atau <em>Laci Fakta</em> — bukan semasa login.
+    App ini adalah app khas untuk manage gambar, jadi kos adalah wajar dan tidak membazir.
+    Tiada perubahan kod diperlukan.
+  </div>
   <!-- PROMPT BOX -->
   <div class="prompt-box locked" id="prompt-box">
     <div class="prompt-label">
@@ -503,11 +510,7 @@ onAuthStateChanged(auth, user => {
   }
 });
 
-// ── LOAD COLLECTIONS ──
-function loadAllCollections() {
-  if (!currentUser) return;
-  const uid = currentUser.uid;
-  onSnapshot(query(collection(db, 'users', uid, 'jenis_kata')), snap => {
+
     allJenisKata = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   });
   onSnapshot(query(collection(db, 'users', uid, 'bahasa_perkataan')), snap => {
