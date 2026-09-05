@@ -512,7 +512,7 @@ onAuthStateChanged(auth, user => {
 
 function loadAllCollections() {
   const uid = currentUser.uid;
-  onSnapshot(query(collection(db, 'users', uid, 'bahasa_jenis_kata')), snap => {
+  onSnapshot(query(collection(db, 'users', uid, 'jenis_kata')), snap => {
     allJenisKata = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   });
   onSnapshot(query(collection(db, 'users', uid, 'bahasa_perkataan')), snap => {
